@@ -1,0 +1,86 @@
+;Licensed under the 3-Clause BSD License
+;Copyright 2021, Martin Wendt
+;Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
+;
+;1. Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
+;
+;2. Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.
+;
+;3. Neither the name of the copyright holder nor the names of its contributors may be used to endorse or promote products derived from this software without specific prior written permission.
+;
+;THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
+;TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR
+;CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+;PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+;LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+;SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+;======================================================
+;CPU v810 like in the Virtual Boy or NEC PC-FX
+;r10=source, r11=destination; 124 Bytes
+;ISAS Assembler Syntax
+depack
+    add     -4, sp
+    st.w    lp, [sp]
+        
+    movea $ff,r0,r20 ;for later
+    in.h [r10],r12 ;size
+    add 2,r10
+    
+    mov r10,r15
+    add r12,r15 ;r15 = end of packed data
+_getToken
+   in.b [r10],r16 ;token
+   add 1, r10 
+
+   mov r16,r14 
+   shr 4,r14 ;r14 = literal 
+   be _getOffset
+
+   jal _getLength
+
+   mov r10,r12
+   jal _copyData ;literal copy r12 to r11
+   mov r12,r10
+
+_getOffset
+   in.b [r10],r13
+   mov r11,r12
+   sub r13,r12
+   in.b 1[r10],r13
+   shl 8,r13
+   sub r13,r12
+   add 2,r10
+   
+   andi 15,r16,r14 ;match length
+   jal _getLength 
+   add 4,r14 ;add min size offset
+   jal _copyData  ;copy match r12 to r11
+   cmp r15,r10 ;end of data stream?
+   ble _getToken
+   ld.w [sp], sp
+   add 4, sp
+   jmp [lp]
+   
+_getLength:
+   cmp $f,r14 ;max=$f indicates more to come
+   bne _gotLength
+
+_getLengthLoop:   
+   in.b [r10],r13
+   add 1,r10
+   add r13,r14
+   cmp r13,r20 ;r20=ff
+   be _getLengthLoop
+_gotLength:
+   jmp [lp]
+
+_copyData:
+   in.b [r12],r21
+   st.b r21,[r11]
+   add 1,r12
+   add 1,r11
+   add -1,r14
+   bne _copyData
+   jmp [lp]
+end_depack    
