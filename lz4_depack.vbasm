@@ -58,7 +58,7 @@ _getOffset
    jal _copyData  ;copy match r12 to r11
    cmp r15,r10 ;end of data stream?
    ble _getToken
-   ld.w [sp], sp
+   ld.w [sp], lp
    add 4, sp
    jmp [lp]
    
