@@ -16,34 +16,38 @@
 ;SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ;======================================================
+
 ;CPU v810 like in the Virtual Boy or NEC PC-FX
 ;r10=source, r11=destination; 124 Bytes
+;lp is the dedicated linkpointer
+
 ;ISAS Assembler Syntax
+begin_depack
 depack
     add     -4, sp
     st.w    lp, [sp]
         
-    movea $ff,r0,r20 ;for later
+    movea $ff,r0,r20 ;for later compare
     in.h [r10],r12 ;size
     add 2,r10
     
     mov r10,r15
     add r12,r15 ;r15 = end of packed data
-_getToken
+fetch_token
    in.b [r10],r16 ;token
    add 1, r10 
 
    mov r16,r14 
    shr 4,r14 ;r14 = literal 
-   be _getOffset
+   be fetch_offset
 
-   jal _getLength
+   jal fetch_length
 
    mov r10,r12
-   jal _copyData ;literal copy r12 to r11
+   jal copy_data ;literal copy r12 to r11
    mov r12,r10
 
-_getOffset
+fetch_offset
    in.b [r10],r13
    mov r11,r12
    sub r13,r12
@@ -53,34 +57,34 @@ _getOffset
    add 2,r10
    
    andi 15,r16,r14 ;match length
-   jal _getLength 
+   jal fetch_length 
    add 4,r14 ;add min size offset
-   jal _copyData  ;copy match r12 to r11
+   jal copy_data  ;copy match r12 to r11
    cmp r15,r10 ;end of data stream?
-   ble _getToken
+   ble fetch_token
    ld.w [sp], lp
    add 4, sp
    jmp [lp]
    
-_getLength:
+fetch_length:
    cmp $f,r14 ;max=$f indicates more to come
-   bne _gotLength
+   bne _done
 
-_getLengthLoop:   
+_loop:   
    in.b [r10],r13
    add 1,r10
    add r13,r14
    cmp r13,r20 ;r20=ff
-   be _getLengthLoop
-_gotLength:
+   be _loop
+_done:
    jmp [lp]
 
-_copyData:
+copy_data:
    in.b [r12],r21
    st.b r21,[r11]
    add 1,r12
    add 1,r11
    add -1,r14
-   bne _copyData
+   bne copy_data
    jmp [lp]
 end_depack    
