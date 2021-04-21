@@ -8,5 +8,7 @@ Code assumes a 2 byte header (little endian size) and then the raw compressed BL
 in lz4 format (up to 64 kB).
 Compressed for example with 'lz4 -12 -B4' and header + tail cropped.
 
+Now it is even listed on the official [LZ4 page](http://lz4.github.io/lz4/). ;-)
+
 Licensed under the 3-Clause BSD License
 Copyright 2021, Martin Wendt
